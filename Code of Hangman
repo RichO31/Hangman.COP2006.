@@ -1,0 +1,172 @@
+#include <iostream>     // For input and output
+#include <vector>       // To use the vector container
+#include <ctime>        // For time() function used in randomization
+#include <cstdlib>      // For rand() and srand()
+#include <algorithm>    // For find() and transform()
+
+using namespace std;
+
+// ==================== HangmanGame CLASS ====================
+class HangmanGame {
+private:
+    string word;                  // The word the player has to guess
+    vector<int> foundIndexes;     // Stores indexes of correctly guessed letters
+    int lives;                    // Number of lives remaining
+    int foundCount;               // Number of letters found so far
+    const int maxLives = 6;       // Maximum number of lives allowed
+
+public:
+    // Constructor that initializes the game with a random word and difficulty
+    HangmanGame(string wordList[], int size, string difficulty) {
+        srand(static_cast<unsigned int>(time(0)));      // Seed random number generator
+        word = wordList[rand() % size];                 // Pick a random word from the list
+        setDifficulty(difficulty);                      // Adjust word or lives based on difficulty
+        foundCount = 0;
+    }
+
+    // Main game loop
+    void play() {
+        while (!isGameOver()) {         // Keep playing until win or lose
+            displayHangman();           // Show hangman based on wrong guesses
+            displayStatus();            // Show current guessed letters and lives
+            char guess = getUserInput();  // Get a letter guess from the player
+            checkGuess(guess);            // Check if guess is in the word
+        }
+
+        // Display win/lose message after game ends
+        if (lives > 0) {
+            cout << "\nCongrats, you found the word: " << word << "!\n";
+        } else {
+            cout << "\nYou failed! The word was: " << word << "\n";
+            displayHangman();  // Show full hangman after losing
+        }
+    }
+
+private:
+    // Check if the game is over (win or out of lives)
+    bool isGameOver() {
+        return (lives <= 0 || foundCount == word.length());
+    }
+
+    // Show current word progress and remaining lives
+    void displayStatus() {
+        foundCount = 0;
+        cout << "\nLives: " << lives << "\nWord: ";
+        for (int i = 0; i < word.length(); ++i) {
+            // If letter is guessed, display it; otherwise, show underscore
+            if (find(foundIndexes.begin(), foundIndexes.end(), i) != foundIndexes.end()) {
+                cout << word[i] << " ";
+                foundCount++;
+            } else {
+                cout << "_ ";
+            }
+        }
+        cout << "\n";
+    }
+
+    // Get a single character guess from user input
+    char getUserInput() {
+        char input;
+        cout << "Guess a letter: ";
+        cin >> input;
+        return tolower(input);  // Convert to lowercase for consistency
+    }
+
+    // Check if the guessed letter is in the word
+    void checkGuess(char guess) {
+        bool found = false;
+
+        for (int i = 0; i < word.length(); ++i) {
+            // If guessed letter matches and hasn't already been guessed
+            if (word[i] == guess && find(foundIndexes.begin(), foundIndexes.end(), i) == foundIndexes.end()) {
+                foundIndexes.push_back(i);  // Save the index of the correct guess
+                found = true;
+            }
+        }
+
+        // Handle wrong or right guess
+        if (!found) {
+            cout << "Wrong guess!\n";
+            lives--;
+        } else {
+            cout << "Correct!\n";
+        }
+    }
+
+    // Adjust word or behavior based on chosen difficulty
+    void setDifficulty(string difficulty) {
+        transform(difficulty.begin(), difficulty.end(), difficulty.begin(), ::tolower);
+        lives = 6;  // All difficulties currently have 6 lives
+
+        // Optional difficulty word adjustment
+        if (difficulty == "easy") {
+            if (word.length() > 5) word = "cat";  // Replace with easier word
+        } else if (difficulty == "hard") {
+            if (word.length() < 7) word = "complexity";  // Replace with harder word
+        }
+    }
+
+    // Visual representation of the hangman based on how many lives are lost
+    void displayHangman() {
+        int lostLives = maxLives - lives;
+
+        cout << "\n  +---+";
+
+        // Head
+        if (lostLives >= 1)
+            cout << "\n  O   |";
+        else
+            cout << "\n      |";
+
+        // Body
+        if (lostLives >= 2)
+            cout << "\n  |   |";
+        else
+            cout << "\n      |";
+
+        // Arms
+        if (lostLives == 3)
+            cout << "\n /|   |";
+        else if (lostLives >= 4)
+            cout << "\n /|\\  |";
+        else
+            cout << "\n      |";
+
+        // Legs
+        if (lostLives == 5)
+            cout << "\n /    |";
+        else if (lostLives >= 6)
+            cout << "\n / \\  |";
+        else
+            cout << "\n      |";
+
+        cout << "\n      |\n     ===\n";
+    }
+};
+
+// ==================== MAIN FUNCTION ====================
+int main() {
+    // Word list categorized by difficulty
+    string wordList[] = {
+        // Easy
+        "cat", "dog", "fish", "book", "tree", "milk", "frog", "bird", "star", "snow",
+        // Medium
+        "planet", "rocket", "banana", "guitar", "castle", "pirate", "jungle", "sunset", "mirror", "bridge",
+        // Hard
+        "oxygen", "phantom", "rhythm", "galaxy", "justice", "complexity", "algorithm", "astronaut", "chemical", "triangle",
+        // Extra
+        "whistle", "volcano", "umbrella", "mountain", "language", "strategy", "magnet", "dolphin", "tornado", "network"
+    };
+    int size = sizeof(wordList) / sizeof(wordList[0]);  // Get total number of words
+
+    // Ask the user for difficulty level
+    string difficulty;
+    cout << "Select difficulty (easy, medium, hard): ";
+    cin >> difficulty;
+
+    // Create the game object and start playing
+    HangmanGame game(wordList, size, difficulty);
+    game.play();
+
+    return 0;
+}
